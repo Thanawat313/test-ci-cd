@@ -67,17 +67,10 @@ jobs:
   deploy:
     needs: container-security
     if: github.ref == 'refs/heads/main'
-    runs-on: self-hosted 
+    # เปลี่ยนกลับมาใช้เครื่อง GitHub เพื่อตัดปัญหาเครื่องเราเอง 👇
+    runs-on: ubuntu-latest 
     steps:
       - name: Mock Deploy Step
         run: |
           echo "🚀 Starting Deployment Mock up..."
-          echo "📦 Pulling latest image: my-mini-project:latest"
-          echo "🔍 Checking System Requirements..."
-          echo "✅ Deployment Successful to Production Environment!"
-          echo "🌐 URL: http://localhost:3000 (Mocked)"
-          
-      - name: Verify Service Status
-        run: |
-          echo "🩺 Health checking..."
-          echo "Status: UP"
+          echo "✅ Deployment Successful (Simulation)"
