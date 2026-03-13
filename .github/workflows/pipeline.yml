@@ -66,26 +66,12 @@ jobs:
   deploy:
     needs: container-security
     if: github.ref == 'refs/heads/main'
-    # เปลี่ยนจาก ubuntu-latest เป็น self-hosted เพื่อให้มันมารันที่เครื่องเรา 👇
     runs-on: self-hosted 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build and Restart Container
+      - name: Build and Restart
         run: |
-          # สร้าง Image ใหม่
           docker build -t my-mini-project:latest .
-          
-          # หยุดและลบ Container ตัวเก่า (ถ้ามี)
           docker stop my-app-container || true
           docker rm my-app-container || true
-          
-          # รัน Container ตัวใหม่
-          docker run -d \
-            --name my-app-container \
-            -p 3000:3000 \
-            --restart unless-stopped \
-            my-mini-project:latest
-            
-      - name: Check Status
-        run: docker ps | grep my-app-container
+          docker run -d --name my-app-container -p 3000:3000 my-mini-project:latest
