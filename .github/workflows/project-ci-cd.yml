@@ -1,0 +1,67 @@
+name: Project CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # Job 1: ตรวจความปลอดภัยและคุณภาพ Code (Run บน Cloud GitHub ฟรี)
+  security-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. Leak Scan: ตรวจหา Password/Token ที่เผลอ Commit
+      - name: Leak Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+
+      # 2. Compile & Unit Test
+      - name: Setup Language (e.g., Node.js)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm test
+
+      # 3. Code Scan (SAST): หาจุดบกพร่องใน Logic ของ Code
+      - name: CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'javascript' # เปลี่ยนตามโปรเจค
+      - uses: github/codeql-action/analyze@v3
+
+  # Job 2: Build Image และสแกนช่องโหว่ (Run บน Cloud)
+  build-and-scan-image:
+    needs: security-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # 4. Build Docker Image
+      - name: Build Docker Image
+        run: docker build -t my-app:latest .
+
+      # 5. Image Scan: ตรวจหาช่องโหว่ใน OS และ Library
+      - name: Image Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'my-app:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+  # Job 3: Deploy มาที่เครื่องเราเอง (Run บนเครื่องคุณ!)
+  deploy-to-local:
+    needs: build-and-scan-image
+    runs-on: self-hosted # <--- สำคัญ! สั่งให้รันที่เครื่องเรา
+    steps:
+      - uses: actions/checkout@v4
+      
+      # 6. Build & Restart Container บนเครื่องตัวเอง
+      - name: Local Docker Deploy
+        run: |
+          docker build -t my-app:latest .
+          docker stop my-app-container || true
+          docker rm my-app-container || true
+          docker run -d --name my-app-container -p 8080:8080 my-app:latest
