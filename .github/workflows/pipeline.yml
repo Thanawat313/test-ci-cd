@@ -1,76 +1,63 @@
-  name:  Pipeline
+name: CI Security Pipeline
 
-  on:
-    push:
-      branches: [ main ]
-    pull_request:
-      branches: [ main ]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-  permissions:
-    contents: read      
-    security-events: write  
-    actions: read
+permissions:
+  contents: read      
+  security-events: write  
+  actions: read
 
-  jobs:
-    # 1. Build & Unit Test
-    build-and-test:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        
-        - name: Setup Environment
-          uses: actions/setup-node@v4 # เปลี่ยนตามภาษาที่ใช้ (python, go, etc.)
-          with:
-            node-version: '20'
-            
-        - name: Install & Compile
-          run: |
-            npm install
-            npm run build --if-present
-            
-        - name: Run Unit Tests
-          run: npx jest --forceExit --detectOpenHandles
-
-    # 2. Security Scan (SAST)
-    security-scan:
-      needs: build-and-test
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - name: Initialize CodeQL
-          uses: github/codeql-action/init@v3
-          with:
-            languages: 'javascript' # เปลี่ยนเป็นภาษาของคุณ
-        - name: Perform Analysis
-          uses: github/codeql-action/analyze@v3
-
-    # 3. Build Image & Scan
-    container-security:
-      needs: security-scan
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        
-        - name: Build Docker Image
-          run: docker build -t my-app:${{ github.sha }} .
-
-        - name: Run Trivy vulnerability scanner
-          uses: aquasecurity/trivy-action@master
-          with:
-            image-ref: 'my-app:${{ github.sha }}'
-            format: 'table'
-            exit-code: '0' 
-            severity: 'CRITICAL,HIGH'
-
-    
-  # 4. Deployment Mock up
-    deploy:
-      needs: container-security
-      if: github.ref == 'refs/heads/main'
+jobs:
+  # 1. Build & Unit Test: ตรวจสอบว่าโค้ดทำงานได้จริงและ Test ผ่าน
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       
-      runs-on: ubuntu-latest 
-      steps:
-        - name: Mock Deploy Step
-          run: |
-            echo "Starting Deployment Mock up..."
-            echo " Deployment Successful (Simulation)"
+      - name: Setup Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install & Compile
+        run: |
+          npm install
+          npm run build --if-present
+          
+      - name: Run Unit Tests
+        run: npx jest --forceExit --detectOpenHandles
+
+  # 2. Security Scan (SAST): สแกนหาช่องโหว่ใน Source Code ด้วย CodeQL
+  security-scan:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'javascript-typescript' # ครอบคลุมทั้ง JS และ TS
+      - name: Perform Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # 3. Build Image & Scan: ลอง Build เป็น Container และสแกนหาช่องโหว่ในระดับ OS/Library
+  container-security:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker Image
+        run: docker build -t my-app:${{ github.sha }} .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'my-app:${{ github.sha }}'
+          format: 'table'
+          exit-code: '0' 
+          severity: 'CRITICAL,HIGH'

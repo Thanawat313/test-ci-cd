@@ -1,13 +1,16 @@
-﻿FROM node:20-alpine
+﻿# ใช้ Image ที่ปลอดภัยและเบา
+FROM node:20-alpine
 
-WORKDIR /app
+# สร้างโฟลเดอร์ทำงาน
+WORKDIR /usr/src/app
 
+# คัดลอกไฟล์ package เพื่อลง dependencies
 COPY package*.json ./
+RUN npm install --only=production
 
-RUN npm install
-
+# คัดลอกโค้ดทั้งหมด
 COPY . .
 
-EXPOSE 3000
 
-CMD ["npm","start"]
+EXPOSE 3000
+CMD [ "node", "app.js" ]
