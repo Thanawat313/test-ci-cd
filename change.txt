@@ -1,0 +1,8 @@
+
+
+                  node                python                       go
+Setup Action	setup-node@v4	      setup-python@v5	            setup-go@v5
+Version Key	    node-version:        '20'	python-version: '3.11'	go-version: '1.21'
+Install Cmd	    npm install	         pip install -r req.txt	        go mod download
+Test Cmd	    npx jest	         pytest	go                      test ./...
+CodeQL Lang	    'javascript'	    'python'	                'go'
