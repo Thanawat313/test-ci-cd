@@ -4,7 +4,7 @@ FROM node:20-alpine
 # สร้างโฟลเดอร์ทำงาน
 WORKDIR /usr/src/app
 
-# คัดลอกไฟล์ package เพื่อลง dependencies
+# คัดลอกไฟล์ package เพื่อลง dependencie
 COPY package*.json ./
 RUN npm install --only=production
 
