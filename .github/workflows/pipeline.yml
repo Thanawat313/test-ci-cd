@@ -21,15 +21,20 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Setup Environment
-        uses: actions/setup-node@v4
+        # [CHANGE]: เปลี่ยนตามภาษาที่ใช้ (เช่น actions/setup-python@v5, actions/setup-go@v5)
+        uses: actions/setup-node@v4 
         with:
-          node-version: '20'
-          cache: 'npm'
+          # [CHANGE]: เปลี่ยนเลขเวอร์ชันให้ตรงกับภาษาที่ใช้
+          node-version: '20' 
+          # [CHANGE]: เปลี่ยนตาม Package Manager (เช่น pip, go-module, maven)
+          cache: 'npm' 
           
       - name: Install Dependencies
-        run: npm ci
+        # [CHANGE]: เปลี่ยนเป็นคำสั่งติดตั้ง Library (เช่น pip install -r requirements.txt หรือ mvn install)
+        run: npm ci 
           
       - name: Run Unit Tests
+        # [CHANGE]: เปลี่ยนเป็นคำสั่งรัน Test ของภาษานั้นๆ (เช่น pytest หรือ go test ./...)
         run: npx jest --forceExit --detectOpenHandles
 
   # 2. Security Scan (SAST)
@@ -42,7 +47,8 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: 'javascript-typescript'
+          # [CHANGE]: ระบุภาษาให้ CodeQL รู้ (เช่น 'python', 'go', 'java-kotlin', 'csharp')
+          languages: 'javascript-typescript' 
           
       - name: Perform Analysis
         uses: github/codeql-action/analyze@v3
@@ -55,12 +61,15 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Build Docker Image
+        # [CHANGE]: เปลี่ยนชื่อ Tag ของ Image (my-app) ให้เป็นชื่อโปรเจกต์ของคุณ
         run: docker build -t my-app:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.20.0 
         with:
-          image-ref: 'my-app:${{ github.sha }}'
+          # [CHANGE]: เปลี่ยนชื่อ Image ให้ตรงกับขั้นตอน Build ด้านบน
+          image-ref: 'my-app:${{ github.sha }}' 
           format: 'table'
+          # [CHANGE]: ถ้าอยากให้ Pipeline หยุดทำงานเมื่อเจอช่องโหว่ ให้เปลี่ยนเป็น '1'
           exit-code: '0' 
           severity: 'CRITICAL,HIGH'
