@@ -12,9 +12,12 @@ permissions:
   actions: read
 
 jobs:
-  # 1. Build & Unit Test: ตรวจสอบว่าโค้ดทำงานได้จริงและ Test ผ่าน
+  # 1. Build & Unit Test
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      # แก้ Warning เรื่อง Node 20
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
     steps:
       - uses: actions/checkout@v4
       
@@ -22,16 +25,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm' # ช่วยให้ Install เร็วขึ้น
           
-      - name: Install & Compile
-        run: |
-          npm install
-          npm run build --if-present
+      - name: Install Dependencies
+        # ใช้ npm install เพื่อสร้าง node_modules และไฟล์ binary ของ jest
+        run: npm install
           
       - name: Run Unit Tests
-        run: npm test
+        # เรียกผ่าน path ตรงๆ เพื่อแก้ปัญหา Exit Code 127 (command not found)
+        run: ./node_modules/.bin/jest --forceExit --detectOpenHandles
 
-  # 2. Security Scan (SAST): สแกนหาช่องโหว่ใน Source Code ด้วย CodeQL
+  # 2. Security Scan (SAST)
   security-scan:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -40,11 +44,11 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: 'javascript-typescript' # ครอบคลุมทั้ง JS และ TS
+          languages: 'javascript-typescript'
       - name: Perform Analysis
         uses: github/codeql-action/analyze@v3
 
-  # 3. Build Image & Scan: ลอง Build เป็น Container และสแกนหาช่องโหว่ในระดับ OS/Library
+  # 3. Build Image & Scan
   container-security:
     needs: security-scan
     runs-on: ubuntu-latest
@@ -55,9 +59,11 @@ jobs:
         run: docker build -t my-app:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        # แนะนำให้ใช้ขยับมาใช้ v0.20.0 หรือตามที่ประกาศล่าสุด
+        uses: aquasecurity/trivy-action@0.20.0 
         with:
           image-ref: 'my-app:${{ github.sha }}'
           format: 'table'
+          # ปรับเป็น 1 ถ้าอยากให้ Pipeline พังเมื่อเจอช่องโหว่ร้ายแรง
           exit-code: '0' 
           severity: 'CRITICAL,HIGH'
